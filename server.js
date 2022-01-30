@@ -16,12 +16,12 @@ autoIncrement.initialize(mongoose.connection);
 
 const urlSchema = new mongoose.Schema({
   shorten_id: {type:Number, required: true},
-  url: {type:String, required:true}
+  original_url: {type:String, required:true}
 });
 
-urlSchema.plugin(autoIncrement.plugin, { model: "urlModel", field: "shorten_id", startAt: 1, incrementBy: 1 });
+urlSchema.plugin(autoIncrement.plugin, { model: "url", field: "shorten_id", startAt: 1, incrementBy: 1 });
 
-const urlModel = mongoose.model("urlModel", urlSchema);
+const url = mongoose.model("url", urlSchema);
 
 // Express middlewares
 app.use(cors());
@@ -43,6 +43,8 @@ app.get('/api/hello', function(req, res) {
 
 app.post('/api/shorturl', (req, res) => {
   let input_url = new URL(req.body.url); // Returns object with properties - hostname, path, etc ...
+
+  // Check if url is valid
   dns.lookup(input_url.hostname, (err) => {
     if (err) {
       console.log(err);
@@ -52,6 +54,20 @@ app.post('/api/shorturl', (req, res) => {
       console.log('Valid url');
 
       res.json({ original_url: input_url, short_url: num });
+    }
+  });
+});
+
+app.get('/api/shorturl/:id', (req, res) => {
+  let result = url.findOne({ shorten_id: req.params.id }, (err, data) => {
+    if (err) return console.log(err);
+
+    // Check if document exists
+    if (data) {
+      res.redirect(data.original_url);
+    }
+    else {
+      res.json({ error: "No short URL found for the given input" });
     }
   });
 });
