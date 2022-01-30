@@ -5,21 +5,21 @@ const app = express();
 const dns = require('dns');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const autoIncrement = require('mongoose-auto-increment');
+const autoIncrementFactory = require('mongoose-sequence');
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
 
 // Connect database and set up
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-autoIncrement.initialize(mongoose.connection);
+const autoIncrement = autoIncrementFactory(mongoose.connection);
 
 const urlSchema = new mongoose.Schema({
-  shorten_id: {type:Number, required: true},
-  original_url: {type:String, required:true}
+  shortenId: Number,
+  original_url: String
 });
 
-urlSchema.plugin(autoIncrement.plugin, { model: "url", field: "shorten_id", startAt: 1, incrementBy: 1 });
+urlSchema.plugin(autoIncrement, { inc_field: "shortenId" });
 
 const url = mongoose.model("url", urlSchema);
 
@@ -42,7 +42,8 @@ app.get('/api/hello', function(req, res) {
 // app.get param (num), check database for the num and corresponding url, redirect if exists, log error if not
 
 app.post('/api/shorturl', (req, res) => {
-  let input_url = new URL(req.body.url); // Returns object with properties - hostname, path, etc ...
+  let original = req.body.url;
+  let input_url = new URL(original); // Returns object with properties - hostname, path, etc ...
 
   // Check if url is valid
   dns.lookup(input_url.hostname, (err) => {
@@ -53,14 +54,31 @@ app.post('/api/shorturl', (req, res) => {
     else{
       console.log('Valid url');
 
-      res.json({ original_url: input_url, short_url: num });
+      // Check if url is registered already
+      url.findOne({ original_url: original }, (err, data) => {
+        if (err) return console.log(err);
+
+        // Check if document exists
+        if (!data) {
+          // Add url to database
+          url.create({ original_url: original }, (err, data) => {
+            if (err) return console.log(err);
+            console.log(data);
+            res.json({ original_url: original, short_url: data.shortenId });
+          });
+        }
+        else {
+          res.json({ original_url: original, short_url: data.shortenId });
+        }
+      });
     }
   });
 });
 
 app.get('/api/shorturl/:id', (req, res) => {
-  let result = url.findOne({ shorten_id: req.params.id }, (err, data) => {
+  url.findOne({ shortenId: req.params.id }, (err, data) => {
     if (err) return console.log(err);
+    console.log(data);
 
     // Check if document exists
     if (data) {
