@@ -12,13 +12,14 @@ const port = process.env.PORT || 3000;
 
 // Connect database and set up
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+autoIncrement.initialize(mongoose.connection);
 
 const urlSchema = new mongoose.Schema({
-  shorten_id: Number,
-  url: String
+  shorten_id: {type:Number, required: true},
+  url: {type:String, required:true}
 });
 
-urlSchema.plugin(autoIncrement.plugin, { model: "Url", field: "shorten_id", startAt: 1 });
+urlSchema.plugin(autoIncrement.plugin, { model: "urlModel", field: "shorten_id", startAt: 1, incrementBy: 1 });
 
 const urlModel = mongoose.model("urlModel", urlSchema);
 
