@@ -5,14 +5,25 @@ const app = express();
 const dns = require('dns');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const autoIncrement = require('mongoose-auto-increment');
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
-// Connect database
+
+// Connect database and set up
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
-app.use(cors());
+const urlSchema = new mongoose.Schema({
+  shorten_id: Number,
+  url: String
+});
 
+urlSchema.plugin(autoIncrement.plugin, { model: "Url", field: "shorten_id", startAt: 1 });
+
+const urlModel = mongoose.model("urlModel", urlSchema);
+
+// Express middlewares
+app.use(cors());
 app.use('/public', express.static(`${process.cwd()}/public`));
 app.use(express.urlencoded({ extended: false }));
 app.use(bodyParser.json());
