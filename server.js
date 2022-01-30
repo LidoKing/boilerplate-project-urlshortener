@@ -24,8 +24,8 @@ app.get('/api/hello', function(req, res) {
 });
 
 app.post('/api/shorturl', (req, res) => {
-  let input_url = req.body.url;
-  dns.lookup(input_url, (err) => {
+  let input_url = new URL(req.body.url); // Returns object with properties - hostname, path, etc ...
+  dns.lookup(input_url.hostname, (err) => {
     if (err) {
       console.log(err);
       res.json({ error: 'invalid url' });
