@@ -4,9 +4,12 @@ const cors = require('cors');
 const app = express();
 const dns = require('dns');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
+// Connect database
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 app.use(cors());
 
@@ -23,6 +26,9 @@ app.get('/api/hello', function(req, res) {
   res.json({ greeting: 'hello API' });
 });
 
+// Let num = 0, for every NEW url, add 1 and save the url and num as key-value pair in database (use existing num if url is registered before)
+// app.get param (num), check database for the num and corresponding url, redirect if exists, log error if not
+
 app.post('/api/shorturl', (req, res) => {
   let input_url = new URL(req.body.url); // Returns object with properties - hostname, path, etc ...
   dns.lookup(input_url.hostname, (err) => {
@@ -33,7 +39,6 @@ app.post('/api/shorturl', (req, res) => {
     else{
       console.log('Valid url');
 
-      let num = Math.floor(Math.random() * 1000); // Get random number from 0 - 999
       res.json({ original_url: input_url, short_url: num });
     }
   });
