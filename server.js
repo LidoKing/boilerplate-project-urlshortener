@@ -43,41 +43,43 @@ app.get('/api/hello', function(req, res) {
 
 app.post('/api/shorturl', (req, res) => {
   let original = req.body.url;
-  let url_object = new URL(original); // Returns object with properties - hostname, path, etc ...
+  let url_object;
 
-  if (url_object) {
-    // Check if url is valid
-    dns.lookup(url_object.hostname, (err) => {
-      if (err) {
-        console.log(err);
-        res.json({ error: 'invalid url' });
-      }
-      else{
-        console.log('Valid url');
-
-        // Check if url is registered already
-        url.findOne({ original_url: original }, (err, data) => {
-          if (err) return console.log(err);
-
-          // Check if document exists
-          if (!data) {
-            // Add url to database
-            url.create({ original_url: original }, (err, data) => {
-              if (err) return console.log(err);
-              console.log(data);
-              res.json({ original_url: original, short_url: data.shortenId });
-            });
-          }
-          else {
-            res.json({ original_url: original, short_url: data.shortenId });
-          }
-        });
-      }
-    });
-  }
-  else {
+  try {
+    url_object = new URL(original); // Returns object with properties - hostname, path, etc ...
+  } catch (e) {
+    console.log(e);
     res.json({ error: 'invalid url' });
   }
+
+  // Check if url is valid
+  dns.lookup(url_object.hostname, (err) => {
+    if (err) {
+      console.log(err);
+      res.json({ error: 'invalid url' });
+    }
+    else{
+      console.log('Valid url');
+
+      // Check if url is registered already
+      url.findOne({ original_url: original }, (err, data) => {
+        if (err) return console.log(err);
+
+        // Check if document exists
+        if (!data) {
+          // Add url to database
+          url.create({ original_url: original }, (err, data) => {
+            if (err) return console.log(err);
+            console.log(data);
+            res.json({ original_url: original, short_url: data.shortenId });
+          });
+        }
+        else {
+          res.json({ original_url: original, short_url: data.shortenId });
+        }
+      });
+    }
+  });
 });
 
 app.get('/api/shorturl/:id', (req, res) => {
